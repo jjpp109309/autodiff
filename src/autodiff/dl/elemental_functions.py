@@ -73,3 +73,11 @@ def cos(x):
     z_adjoint = [np.sin(x)]
 
     return z, z_adjoint
+
+
+@Function
+def mm(x1, x2):
+    z = x1 @ x2
+    z_adjoint = [x2.T, x1]
+
+    return z, z_adjoint

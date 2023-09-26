@@ -4,7 +4,7 @@ from .elemental_functions import mm, add
 from .tensor import Tensor
 
 
-class Layer(object):
+class Layer():
 
     def __init__(self):
         self.parameters = []
@@ -13,7 +13,7 @@ class Layer(object):
         return self.parameters
 
     def forward(self, x):
-        pass
+        raise NotImplemented('forward class not implemented!')
 
     def __call__(self, x):
         return self.forward(x)
