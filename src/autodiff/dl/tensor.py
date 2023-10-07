@@ -17,3 +17,36 @@ class Tensor:
 
             if child.adjoints:
                 child.grad()
+
+    def __add__(self, other):
+        return Tensor(self.value + other.value)
+
+    def __sub__(self, other):
+        return Tensor(self.value - other.value)
+
+    def __neg__(self):
+        return -self.value
+
+    def __str__(self):
+        return self.value.__str__()
+
+    def __repr__(self):
+        return self.value.__repr__()
+
+
+class Function:
+    def __init__(self, func: callable):
+        self.func = func
+
+    def __call__(self, *args: Tensor) -> Tensor:
+
+        value, adjoints = self.func(*[i.value for i in args])
+
+        y = Tensor(value)
+        y.adjoints = [(arg, adjoint) for arg, adjoint in zip(args, adjoints)]
+
+        for arg in args:
+            arg.gradient = 0
+
+        return y
+
