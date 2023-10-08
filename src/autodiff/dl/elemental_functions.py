@@ -1,22 +1,5 @@
 import numpy as np
-from .tensor import Tensor
-
-
-class Function:
-    def __init__(self, func: callable):
-        self.func = func
-
-    def __call__(self, *args: Tensor) -> Tensor:
-
-        value, adjoints = self.func(*[i.value for i in args])
-
-        y = Tensor(value)
-        y.adjoints = [(arg, adjoint) for arg, adjoint in zip(args, adjoints)]
-
-        for arg in args:
-            arg.gradient = 0
-
-        return y
+from .tensor import Function
 
 
 @Function
@@ -44,9 +27,9 @@ def multiply(x1, x2):
 
 
 @Function
-def pow(x, n):
-    z = np.pow(x, n)
-    z_adjoint = [n * np.pow(x, n-1)]
+def pow(x, n=None):
+    z = np.power(x, n)
+    z_adjoint = [n * np.power(x, n-1)]
 
     return z, z_adjoint
 
@@ -79,5 +62,13 @@ def cos(x):
 def mm(x1, x2):
     z = x1 @ x2
     z_adjoint = [x2.T, x1]
+
+    return z, z_adjoint
+
+
+@Function
+def exp(x):
+    z = np.exp(x)
+    z_adjoint = [z]
 
     return z, z_adjoint
