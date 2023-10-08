@@ -22,6 +22,12 @@ class Tensor:
     def __repr__(self):
         return self.value.__repr__()
 
+    def __add__(self, other):
+        return Tensor(self.value + other.value)
+
+    def __sub__(self, other):
+        return Tensor(self.value - other.value)
+
 
 class Function:
     def __init__(self, func: callable):
