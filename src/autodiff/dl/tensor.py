@@ -33,9 +33,9 @@ class Function:
     def __init__(self, func: callable):
         self.func = func
 
-    def __call__(self, *args: Tensor) -> Tensor:
+    def __call__(self, *args: Tensor, **kwargs) -> Tensor:
 
-        value, adjoints = self.func(*[i.value for i in args])
+        value, adjoints = self.func(*[i.value for i in args], **kwargs)
 
         y = Tensor(value)
         y.adjoints = [(arg, adjoint) for arg, adjoint in zip(args, adjoints)]
