@@ -1,34 +1,23 @@
-import jax.numpy as np
+import numpy as np
 
 from typing import List, Tuple
 
 
 class Tensor:
+    # based on: https://www.jmlr.org/papers/volume18/17-468/17-468.pdf
 
     def __init__(self, value):
         self.value = np.array(value)
         self.adjoints: List[Tuple[Tensor, float]] = None
         self.gradient = np.ones_like(self.value)
 
-    def grad(self):
+    def backward(self):
         # backprop
         for child, adjoint in self.adjoints:
             child.gradient += self.gradient * adjoint
 
             if child.adjoints:
-                child.grad()
-
-    def __add__(self, other):
-        return Tensor(self.value + other.value)
-
-    def __sub__(self, other):
-        return Tensor(self.value - other.value)
-
-    def __neg__(self):
-        return -self.value
-
-    def __str__(self):
-        return self.value.__str__()
+                child.backward()
 
     def __repr__(self):
         return self.value.__repr__()
@@ -49,4 +38,3 @@ class Function:
             arg.gradient = 0
 
         return y
-
