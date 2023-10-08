@@ -13,7 +13,7 @@ class Layer():
         return self.parameters
 
     def forward(self, x):
-        raise NotImplemented('forward class not implemented!')
+        raise NotImplementedError('forward class not implemented!')
 
     def __call__(self, x):
         return self.forward(x)
