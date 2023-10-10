@@ -60,6 +60,9 @@ class Tensor:
                         for creator in self.creators:
                             creator.backward(self.grad, self)
 
+                    case 'neg':
+                        self.creators[0].backward(self.grad.__neg__())
+
     def __add__(self, other):
 
         autograd_on = self.autograd and other.autograd
@@ -70,6 +73,16 @@ class Tensor:
         }
 
         return Tensor(self.data + other.data, **kwargs)
+
+    def __neg__(self):
+        autograd_on = self.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self] if autograd_on else None,
+            'creation_op': 'neg' if autograd_on else None,
+        }
+
+        return Tensor(-1 * self.data, **kwargs)
 
     def __repr__(self):
         return str(self.data.__repr__())

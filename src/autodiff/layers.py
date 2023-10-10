@@ -1,3 +1,4 @@
+# based on: https://manning.com/books/grokking-deep-learning
 import numpy as np
 from .elemental_functions import mm, add
 
