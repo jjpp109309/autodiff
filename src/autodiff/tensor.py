@@ -2,6 +2,13 @@ import numpy as np
 
 from typing import List
 from collections import defaultdict
+from enum import Enum, auto
+
+
+class Operation(Enum):
+    SUM: auto()
+    NEG: auto()
+    SUB: auto()
 
 
 class Tensor:
@@ -56,11 +63,11 @@ class Tensor:
 
             if keep_propagating:
                 match self.creation_op:
-                    case 'add':
+                    case Operation.SUM:
                         for creator in self.creators:
                             creator.backward(self.grad, self)
 
-                    case 'neg':
+                    case Operation.NEG:
                         self.creators[0].backward(self.grad.__neg__())
 
     def __add__(self, other):
@@ -69,7 +76,7 @@ class Tensor:
         kwargs = {
             'autograd': True if autograd_on else False,
             'creators': [self, other] if autograd_on else None,
-            'creation_op': 'add' if autograd_on else None,
+            'creation_op': Operation.SUM if autograd_on else None,
         }
 
         return Tensor(self.data + other.data, **kwargs)
@@ -79,7 +86,7 @@ class Tensor:
         kwargs = {
             'autograd': True if autograd_on else False,
             'creators': [self] if autograd_on else None,
-            'creation_op': 'neg' if autograd_on else None,
+            'creation_op': Operation.NEG if autograd_on else None,
         }
 
         return Tensor(-1 * self.data, **kwargs)
