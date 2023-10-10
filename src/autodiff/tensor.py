@@ -1,32 +1,81 @@
 import numpy as np
 
-from typing import List, Tuple
+from typing import List
+from collections import defaultdict
 
 
 class Tensor:
-    # based on: https://www.jmlr.org/papers/volume18/17-468/17-468.pdf
+    def __init__(self, data: np.ndarray, autograd=False,
+                 creators: List = None,
+                 creation_op: str = None, id: int = None):
 
-    def __init__(self, value):
-        self.value = np.array(value)
-        self.adjoints: List[Tuple[Tensor, float]] = None
-        self.gradient = np.ones_like(self.value)
+        self.data = np.array(data)
+        self.autograd = autograd
+        self.creators = creators
+        self.creation_op = creation_op
+        self.id = id if id else np.random.randint(0, 1000000)
 
-    def backward(self):
-        # backprop
-        for child, adjoint in self.adjoints:
-            child.gradient += self.gradient * adjoint
+        self.grad = None
+        self.children = defaultdict(lambda: 0)
 
-            if child.adjoints:
-                child.backward()
+        if creators:
+            for c in creators:
+                c.children[self.id] += 1
 
-    def __repr__(self):
-        return self.value.__repr__()
+    def all_children_grads_accounted_for(self):
+
+        accounted = True
+        for id, count in self.children.items():
+            if count:
+                accounted = False
+                break
+
+        return accounted
+
+    def backward(self, grad=None, grad_origin=None):
+
+        if not grad and not grad_origin:
+            grad = Tensor(np.ones_like(self.data))
+
+        if self.autograd:
+            if grad_origin:
+                if self.children[grad_origin.id]:
+                    self.children[grad_origin.id] -= 1
+                else:
+                    raise Exception("cannot backprop more than once")
+
+            self.grad = self.grad + grad if self.grad else grad
+
+            keep_propagating = (
+                self.creators and (
+                    self.all_children_grads_accounted_for()
+                    or
+                    not grad_origin
+                )
+            )
+
+            if keep_propagating:
+                match self.creation_op:
+                    case 'add':
+                        for creator in self.creators:
+                            creator.backward(self.grad, self)
 
     def __add__(self, other):
-        return Tensor(self.value + other.value)
 
-    def __sub__(self, other):
-        return Tensor(self.value - other.value)
+        autograd_on = self.autograd and other.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self, other] if autograd_on else None,
+            'creation_op': 'add' if autograd_on else None,
+        }
+
+        return Tensor(self.data + other.data, **kwargs)
+
+    def __repr__(self):
+        return str(self.data.__repr__())
+
+    def __str__(self):
+        return str(self.data.__str__())
 
 
 class Function:
