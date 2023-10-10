@@ -60,8 +60,8 @@ def cos(x):
 
 @Function
 def mm(x1, x2):
-    z = x1 @ x2
-    z_adjoint = [x2.T, x1]
+    z = np.dot(x1, x2)
+    z_adjoint = [x2, x1]
 
     return z, z_adjoint
 
