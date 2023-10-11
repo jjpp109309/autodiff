@@ -2,13 +2,13 @@ import numpy as np
 
 from typing import List
 from collections import defaultdict
-from enum import Enum, auto
+from enum import Enum
 
 
-class Operation(Enum):
-    SUM: auto()
-    NEG: auto()
-    SUB: auto()
+Operation = Enum('creation_op', [
+    'SUM',
+    'NEG'
+])
 
 
 class Tensor:
