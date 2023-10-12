@@ -83,6 +83,18 @@ class Tensor:
 
         return Tensor(value, children)
 
+    def __pow__(self, n):
+        value = self.value ** n
+        children = [(n * self.value ** (n-1), self)]
+
+        return Tensor(value, children)
+
+    def dot(self, x):
+        value = np.dot(self.value, x.value)
+        children = [(x.value.T, self), (self.value.T, x.value)]
+
+        return Tensor(value, children)
+
     def __repr__(self):
         return str(self.value)
 
