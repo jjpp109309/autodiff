@@ -5,13 +5,31 @@ from collections import defaultdict
 from enum import Enum
 
 
-Operation = Enum('creation_op', [
-    'SUM',
-    'NEG'
-])
+class Operation(Enum):
+    ADD = 1
+    NEG = 2
+    SUB = 3
+    MUL = 4
+    EXPAND = 5
+    TR = 6
+    MM = 7
+    SUM0 = 8
+    SUM1 = 9
+    SUM2 = 10
+    SUM3 = 11
+    SUM4 = 12
+    SUM5 = 13
+    EXPAND1 = 14
+    EXPAND2 = 15
+    EXPAND3 = 16
+    EXPAND4 = 17
+    EXPAND5 = 18
+    TRANSPOSE = 19
 
 
 class Tensor:
+    # from: https://www.manning.com/books/grokking-deep-learning
+
     def __init__(self, data: np.ndarray, autograd=False,
                  creators: List = None,
                  creation_op: str = None, id: int = None):
@@ -63,12 +81,86 @@ class Tensor:
 
             if keep_propagating:
                 match self.creation_op:
-                    case Operation.SUM:
+                    case Operation.ADD:
                         for creator in self.creators:
                             creator.backward(self.grad, self)
 
                     case Operation.NEG:
                         self.creators[0].backward(self.grad.__neg__())
+
+                    case Operation.SUB:
+                        new = Tensor(self.grad.data)
+                        self.creators[0].backward(new, self)
+                        new = Tensor(self.grad.__neg__().data)
+                        self.creators[1].backward(new, self)
+
+                    case Operation.MUL:
+                        new = self.grad * self.creators[1]
+                        self.creators[0].backward(new, self)
+                        new = self.grad * self.creators[0]
+                        self.creators[1].backward(new, self)
+
+                    case Operation.MM:
+                        act = self.creators[0]
+                        weights = self.creators[1]
+                        new = self.grad.mm(weights.transpose())
+                        act.backward(new)
+                        new = self.grad.transpose().mm(act).transpose()
+                        weights.backward(new)
+
+                    case Operation.TRANSPOSE:
+                        self.creators[0].backward(self.grad.transpose())
+
+                    case Operation.SUM0:
+                        dim = 0
+                        ds = self.creators[0].data.shape[0]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.SUM1:
+                        dim = 1
+                        ds = self.creators[0].data.shape[1]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.SUM2:
+                        dim = 2
+                        ds = self.creators[0].data.shape[2]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.SUM3:
+                        dim = 3
+                        ds = self.creators[0].data.shape[3]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.SUM4:
+                        dim = 4
+                        ds = self.creators[0].data.shape[4]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.SUM5:
+                        dim = 5
+                        ds = self.creators[0].data.shape[5]
+                        self.creators[0].backward(self.grad.expand(dim, ds))
+
+                    case Operation.EXPAND1:
+                        dim = 1
+                        self.creators[0].backward(self.grad.sum(dim))
+
+                    case Operation.EXPAND2:
+                        dim = 2
+                        self.creators[0].backward(self.grad.sum(dim))
+
+                    case Operation.EXPAND3:
+                        dim = 3
+                        self.creators[0].backward(self.grad.sum(dim))
+
+                    case Operation.EXPAND4:
+                        dim = 4
+                        self.creators[0].backward(self.grad.sum(dim))
+
+                    case Operation.EXPAND1:
+                        dim = 5
+                        self.creators[0].backward(self.grad.sum(dim))
+
 
     def __add__(self, other):
 
@@ -76,7 +168,7 @@ class Tensor:
         kwargs = {
             'autograd': True if autograd_on else False,
             'creators': [self, other] if autograd_on else None,
-            'creation_op': Operation.SUM if autograd_on else None,
+            'creation_op': Operation.ADD if autograd_on else None,
         }
 
         return Tensor(self.data + other.data, **kwargs)
@@ -90,6 +182,73 @@ class Tensor:
         }
 
         return Tensor(-1 * self.data, **kwargs)
+
+    def __sub__(self, other):
+        autograd_on = self.autograd and other.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self, other] if autograd_on else None,
+            'creation_op': Operation.SUB if autograd_on else None,
+        }
+
+        return Tensor(self.data - other.data, **kwargs)
+
+    def __mul__(self, other):
+        autograd_on = self.autograd and other.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self, other] if autograd_on else None,
+            'creation_op': Operation.MUL if autograd_on else None,
+        }
+
+        return Tensor(self.data * other.data, **kwargs)
+
+    def sum(self, dim):
+        autograd_on = self.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self] if autograd_on else None,
+            'creation_op': 'SUM{}'.format(dim) if autograd_on else None,
+        }
+
+        return Tensor(self.data.sum(dim), **kwargs)
+
+    def expand(self, dim, copies):
+
+        trans_cmd = list(range(len(self.data.shape)))
+        trans_cmd.insert(dim, len(self.data.shape))
+        new_shape = list(self.data.shape) + [copies]
+        new_data = self.data.repeat(copies).reshape(new_shape)
+        new_data = new_data.transpose(trans_cmd)
+
+        autograd_on = self.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self] if autograd_on else None,
+            'creation_op': 'EXPAND{}'.format(dim) if autograd_on else None,
+        }
+
+        return Tensor(new_data, **kwargs)
+
+    def transpose(self):
+        autograd_on = self.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self] if autograd_on else None,
+            'creation_op': 'TRANSPOSE' if autograd_on else None,
+        }
+
+        return Tensor(self.data.T(), **kwargs)
+
+    def mm(self, x):
+        autograd_on = self.autograd
+        kwargs = {
+            'autograd': True if autograd_on else False,
+            'creators': [self] if autograd_on else None,
+            'creation_op': 'TRANSPOSE' if autograd_on else None,
+        }
+
+        return Tensor(self.data.dot(x.data), **kwargs)
 
     def __repr__(self):
         return str(self.data.__repr__())
