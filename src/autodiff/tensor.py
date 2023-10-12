@@ -1,4 +1,6 @@
 import numpy as np
+import math
+import pdb
 
 from typing import List
 from collections import defaultdict
@@ -277,32 +279,34 @@ class Function:
 # https://rufflewind.com/2016-12-30/reverse-mode-automatic-differentiation
 class Variable:
 
-    def __init__(self, value):
+    def __init__(self, value, children=None):
         self.value = value
-        self.children = []
-        self.grad_value = []
+        self.children = children or []
+        self.gradient = 0
 
-    def grad(self):
-        if not self.grad_value:
-            self.grad_value = sum(w * var.grad() for w, var in self.children)
+    def grad(self, gradient=1):
+        self.gradient += gradient
 
-        return self.grad_value
+        for adjoint, child in self.children:
+            child.grad(adjoint * gradient)
 
     def __add__(self, other):
-        z = Variable(self.value + other.value)
+        value = self.value + other.value
+        children = [(1, self), (1, other)]
 
-        self.children.append((1, z))
-        self.other.append((1, z))
+        return Variable(value, children)
 
-        return z
+    def __sub__(self, other):
+        value = self.value - other.value
+        children = [(1, self), (-1, other)]
+
+        return Variable(value, children)
 
     def __mul__(self, other):
-        z = Variable(self.value * other.value)
+        value = self.value * other.value
+        children = [(other.value, self), (self.value, other)]
 
-        self.children.append((other.value, z))
-        other.children.append((self.value, z))
-
-        return z
+        return Variable(value, children)
 
     def __repr__(self):
         return str(self.value)
@@ -311,4 +315,22 @@ class Variable:
         return str(self.value)
 
 
+def sin(x: Variable) -> Variable:
+    value = Variable(math.sin(x))
+    children = [(math.cos(x), x)]
 
+    return Variable(value, children)
+
+
+def cos(x: Variable):
+    value = Variable(math.cos(x))
+    children = [(-math.sin(x), x)]
+
+    return Variable(value, children)
+
+
+def exp(x: Variable):
+    value = Variable(math.exp(x))
+    children = [(math.exp(x), x)]
+
+    return Variable(value, children)
