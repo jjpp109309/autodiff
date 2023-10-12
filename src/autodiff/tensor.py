@@ -272,3 +272,43 @@ class Function:
             arg.gradient = 0
 
         return y
+
+
+# https://rufflewind.com/2016-12-30/reverse-mode-automatic-differentiation
+class Variable:
+
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+        self.grad_value = []
+
+    def grad(self):
+        if not self.grad_value:
+            self.grad_value = sum(w * var.grad() for w, var in self.children)
+
+        return self.grad_value
+
+    def __add__(self, other):
+        z = Variable(self.value + other.value)
+
+        self.children.append((1, z))
+        self.other.append((1, z))
+
+        return z
+
+    def __mul__(self, other):
+        z = Variable(self.value * other.value)
+
+        self.children.append((other.value, z))
+        other.children.append((self.value, z))
+
+        return z
+
+    def __repr__(self):
+        return str(self.value)
+
+    def __str__(self):
+        return str(self.value)
+
+
+
